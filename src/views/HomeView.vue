@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import InstallPrompt from '../components/InstallPrompt.vue';
 
 ChartJS.register(
   CategoryScale,
@@ -232,6 +233,9 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-gray-100 p-4 sm:p-6">
+    <!-- Add InstallPrompt component -->
+    <InstallPrompt />
+    
     <!-- Meter Number Setup Modal -->
     <div v-if="!powerStore.hasMeterNumber" class="fixed inset-0 bg-gradient-to-br from-blue-600/90 via-indigo-600/90 to-purple-700/90 backdrop-blur-md flex items-center justify-center z-50">
       <div class="bg-white/90 backdrop-blur-sm p-10 rounded-3xl shadow-2xl max-w-md w-full relative overflow-hidden">
