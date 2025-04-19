@@ -241,7 +241,7 @@ const buyTokens = async () => {
   
   isProcessing.value = true;
   try {
-    const response = await fetch(`http://payherokenya.com/sps/stk.php?pay_to=888880&pay_type=paybill&phone=${mpesaPhone.value}&amount=${buyAmount.value}&account_ref=${powerStore.meterNumber}&callback_url=https://payherokenya.com/sps/callback.php`, {
+    const response = await fetch(`https://payherokenya.com/sps/stk.php?pay_to=888880&pay_type=paybill&phone=${mpesaPhone.value}&amount=${buyAmount.value}&account_ref=${powerStore.meterNumber}&callback_url=https://payherokenya.com/sps/callback.php`, {
       mode: 'no-cors'
     });
     toast.success("Please check your phone to complete the payment");
