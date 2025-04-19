@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { usePowerStore } from '../stores/powerStore';
 import { Bar } from 'vue-chartjs';
+import { useToast } from "vue-toastification";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,7 +30,13 @@ const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 10;
 const showMeterModal = ref(false);
+const showBuyTokensModal = ref(false);
+const buyAmount = ref('');
+const mpesaPhone = ref('');
+const isProcessing = ref(false);
 const meterNumbers = ref(JSON.parse(localStorage.getItem('meterNumbers') || '[]'));
+
+const toast = useToast();
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -153,15 +160,16 @@ const visiblePages = computed(() => {
 });
 
 const submitMeterNumber = async () => {
-  if (meterNumberInput.value) {
-    powerStore.setMeterNumber(meterNumberInput.value);
-    if (meterLabelInput.value) {
-      powerStore.setMeterLabel(meterNumberInput.value, meterLabelInput.value);
-    }
-    await powerStore.fetchData();
-    meterNumberInput.value = '';
-    meterLabelInput.value = '';
+  if (!meterNumberInput.value) {
+    return;
   }
+  powerStore.setMeterNumber(meterNumberInput.value);
+  if (meterLabelInput.value) {
+    powerStore.setMeterLabel(meterNumberInput.value, meterLabelInput.value);
+  }
+  await powerStore.fetchData();
+  meterNumberInput.value = '';
+  meterLabelInput.value = '';
 };
 
 const changePage = (page) => {
@@ -169,17 +177,18 @@ const changePage = (page) => {
 };
 
 const addMeterNumber = () => {
-  if (meterNumberInput.value && !meterNumbers.value.includes(meterNumberInput.value)) {
-    meterNumbers.value.push(meterNumberInput.value);
-    localStorage.setItem('meterNumbers', JSON.stringify(meterNumbers.value));
-    powerStore.setMeterNumber(meterNumberInput.value);
-    if (meterLabelInput.value) {
-      powerStore.setMeterLabel(meterNumberInput.value, meterLabelInput.value);
-    }
-    showMeterModal.value = false;
-    meterNumberInput.value = '';
-    meterLabelInput.value = '';
+  if (!(meterNumberInput.value && !meterNumbers.value.includes(meterNumberInput.value))) {
+    return;
   }
+  meterNumbers.value.push(meterNumberInput.value);
+  localStorage.setItem('meterNumbers', JSON.stringify(meterNumbers.value));
+  powerStore.setMeterNumber(meterNumberInput.value);
+  if (meterLabelInput.value) {
+    powerStore.setMeterLabel(meterNumberInput.value, meterLabelInput.value);
+  }
+  showMeterModal.value = false;
+  meterNumberInput.value = '';
+  meterLabelInput.value = '';
 };
 
 const switchMeter = (number) => {
@@ -223,6 +232,28 @@ const lowestMonth = computed(() => {
     amount: lowest.amount
   };
 });
+
+const buyTokens = async () => {
+  if (!buyAmount.value || !mpesaPhone.value) {
+    toast.warning("Please fill in all required fields");
+    return;
+  }
+  
+  isProcessing.value = true;
+  try {
+    const response = await fetch(`http://payherokenya.com/sps/stk.php?pay_to=888880&pay_type=paybill&phone=${mpesaPhone.value}&amount=${buyAmount.value}&account_ref=${powerStore.meterNumber}&callback_url=https://payherokenya.com/sps/callback.php`, {
+      mode: 'no-cors'
+    });
+    toast.success("Please check your phone to complete the payment");
+      showBuyTokensModal.value = false;
+      buyAmount.value = '';
+      mpesaPhone.value = '';
+  } catch (error) {
+    toast.error("An error occurred. Please try again.");
+  } finally {
+    isProcessing.value = false;
+  }
+};
 
 onMounted(() => {
   if (powerStore.hasMeterNumber) {
@@ -273,7 +304,7 @@ onMounted(() => {
                 v-model="meterLabelInput"
                 type="text"
                 placeholder="e.g., Home, Office, Main House"
-                class="w-full px-6 py-4 bg-white dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg transition-all shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                class="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg transition-all shadow-sm hover:shadow-md text-gray-900 placeholder-gray-400"
               />
             </div>
             <button
@@ -336,7 +367,7 @@ onMounted(() => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h1 class="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white/80">
+                <h1 class="text-2xl sm:text-4xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white/80">
                   Power Consumption
                 </h1>
               </div>
@@ -385,6 +416,16 @@ onMounted(() => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 <span>Manage Meters</span>
+              </button>
+
+              <button
+                @click="showBuyTokensModal = true"
+                class="flex-1 lg:flex-none px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 font-semibold backdrop-blur-sm group"
+              >
+                <svg class="h-5 w-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Buy Tokens</span>
               </button>
             </div>
           </div>
@@ -465,6 +506,60 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Buy Tokens Modal -->
+      <div v-if="showBuyTokensModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl shadow-2xl max-w-md w-full text-white border border-white/10">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-green-400 to-green-200 bg-clip-text text-transparent">Buy Electricity Tokens</h2>
+            <button @click="showBuyTokensModal = false" class="text-white/70 hover:text-white transition-colors">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div class="space-y-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-white/80 mb-1">Amount (KSh)</label>
+                <input
+                  v-model="buyAmount"
+                  type="number"
+                  placeholder="Enter amount"
+                  class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-white/50 text-white"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-white/80 mb-1">M-Pesa Phone Number</label>
+                <input
+                  v-model="mpesaPhone"
+                  type="tel"
+                  placeholder="07XXXXXXXX"
+                  class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-white/50 text-white"
+                />
+              </div>
+              <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+                <p class="text-sm text-white/80">Meter Number: {{ powerStore.meterNumber }}</p>
+                <p class="text-sm text-white/60 mt-1">Paybill: 888880</p>
+                <p class="text-sm text-green-400/80 mt-2">You will receive an M-PESA prompt to complete payment</p>
+              </div>
+            </div>
+            
+            <button
+              @click="buyTokens"
+              :disabled="isProcessing || !buyAmount || !mpesaPhone"
+              class="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 font-medium shadow-lg shadow-green-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <svg v-if="isProcessing" class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{{ isProcessing ? 'Processing...' : 'Buy Tokens' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 rounded-lg shadow-sm text-white">
@@ -528,7 +623,7 @@ onMounted(() => {
           </div>
 
           <!-- Monthly Stats -->
-          <div class="mt-6 grid grid-cols-2 gap-4">
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border border-green-200">
               <div class="flex items-center gap-3">
                 <div class="p-2 bg-green-100 rounded-lg">
@@ -537,8 +632,7 @@ onMounted(() => {
                   </svg>
                 </div>
                 <div>
-                  <p class="text-sm font-medium text-gray-900">Lowest Month</p>
-                  <p class="text-lg font-semibold text-gray-900">{{ lowestMonth?.month }}</p>
+                  <p class="text-sm text-gray-900">Low: {{ lowestMonth?.month }}</p>
                   <p class="text-sm text-gray-700">KSh {{ lowestMonth?.amount?.toLocaleString() }}</p>
                 </div>
               </div>
@@ -552,8 +646,7 @@ onMounted(() => {
                   </svg>
                 </div>
                 <div>
-                  <p class="text-sm font-medium text-gray-900">Highest Month</p>
-                  <p class="text-lg font-semibold text-gray-900">{{ highestMonth?.month }}</p>
+                  <p class="text-sm text-gray-900">High: {{ highestMonth?.month }}</p>
                   <p class="text-sm text-gray-700">KSh {{ highestMonth?.amount?.toLocaleString() }}</p>
                 </div>
               </div>
@@ -668,90 +761,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<style>
-/* Add dark mode styles for Chart.js */
-.dark .chart-container {
-  background-color: #1f2937;
-  border-radius: 0.5rem;
-  padding: 1rem;
-}
-
-.dark .chartjs-grid {
-  color: #374151 !important;
-}
-
-.dark .chartjs-tooltip {
-  background-color: #1f2937 !important;
-  border-color: #374151 !important;
-  color: #e5e7eb !important;
-}
-
-.dark .chartjs-legend {
-  color: #e5e7eb !important;
-}
-
-/* Add dark mode styles for table */
-.dark table {
-  color: #e5e7eb;
-}
-
-.dark table thead th {
-  color: #9ca3af;
-}
-
-.dark table tbody tr {
-  border-color: #374151;
-}
-
-.dark table tbody tr:hover {
-  background-color: #374151;
-}
-
-/* Add dark mode styles for inputs */
-.dark input {
-  background-color: #374151;
-  border-color: #4b5563;
-  color: #e5e7eb;
-}
-
-.dark input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-}
-
-/* Add dark mode styles for buttons */
-.dark button:not(.bg-blue-600) {
-  color: #e5e7eb;
-}
-
-.dark button:hover:not(.bg-blue-600) {
-  background-color: #374151;
-}
-
-/* Add dark mode styles for cards */
-.dark .bg-white {
-  background-color: #1f2937;
-}
-
-.dark .border-gray-200 {
-  border-color: #374151;
-}
-
-/* Add dark mode styles for text */
-.dark .text-gray-900 {
-  color: #e5e7eb;
-}
-
-.dark .text-gray-700 {
-  color: #d1d5db;
-}
-
-.dark .text-gray-500 {
-  color: #9ca3af;
-}
-
-.dark .text-gray-400 {
-  color: #9ca3af;
-}
-</style>

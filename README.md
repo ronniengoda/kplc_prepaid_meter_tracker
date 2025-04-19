@@ -12,6 +12,7 @@ A modern Vue.js dashboard for tracking and visualizing electricity consumption d
 - 🔍 Search and filter transactions
 - 📱 Responsive design for all devices
 - 💾 Local storage for data persistence
+- 💳 M-PESA integration for token purchases
 
 ## Tech Stack
 
