@@ -433,11 +433,11 @@ onMounted(() => {
       </div>
 
       <!-- Meter Management Modal -->
-      <div v-if="showMeterModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl shadow-2xl max-w-md w-full text-white border border-white/10">
+      <div v-if="showMeterModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 mx-auto">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent">Manage Meters</h2>
-            <button @click="showMeterModal = false" class="text-white/70 hover:text-white transition-colors">
+            <h2 class="text-2xl font-bold text-gray-800">Manage Meters</h2>
+            <button @click="showMeterModal = false" class="text-gray-500 hover:text-gray-800 transition-colors">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -450,13 +450,13 @@ onMounted(() => {
                 v-model="meterNumberInput"
                 type="text"
                 placeholder="Enter new meter number"
-                class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-white/50 text-white"
+                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-gray-800"
               />
               <input
                 v-model="meterLabelInput"
                 type="text"
                 placeholder="Enter label (e.g., Home, Office)"
-                class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-white/50 text-white"
+                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-gray-800"
               />
             </div>
             <button
@@ -466,34 +466,34 @@ onMounted(() => {
               Add New Meter
             </button>
 
-            <div class="bg-white/5 rounded-xl divide-y divide-white/10 border border-white/10">
+            <div class="bg-gray-50 rounded-xl divide-y divide-gray-200 border border-gray-200">
               <div
                 v-for="number in meterNumbers"
                 :key="number"
-                class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                class="flex items-center justify-between p-4 hover:bg-gray-100 transition-colors"
               >
                 <div class="flex items-center space-x-3">
-                  <div class="p-2 bg-white/10 rounded-lg">
-                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="p-2 bg-blue-100 rounded-lg">
+                    <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   </div>
                   <div>
-                    <div class="font-medium text-white">{{ powerStore.getMeterLabel(number) }}</div>
-                    <div class="text-sm text-white/60">{{ number }}</div>
+                    <div class="font-medium text-gray-800">{{ powerStore.getMeterLabel(number) }}</div>
+                    <div class="text-sm text-gray-500">{{ number }}</div>
                   </div>
                 </div>
                 <div class="flex items-center space-x-3">
                   <button
                     @click="switchMeter(number)"
                     :disabled="powerStore.meterNumber === number"
-                    class="px-4 py-2 text-sm bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    class="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Switch
                   </button>
                   <button
                     @click="removeMeter(number)"
-                    class="p-2 text-white/60 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                    class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                   >
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -507,11 +507,11 @@ onMounted(() => {
       </div>
 
       <!-- Buy Tokens Modal -->
-      <div v-if="showBuyTokensModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl shadow-2xl max-w-md w-full text-white border border-white/10">
+      <div v-if="showBuyTokensModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 mx-auto">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold bg-gradient-to-r from-green-400 to-green-200 bg-clip-text text-transparent">Buy Electricity Tokens</h2>
-            <button @click="showBuyTokensModal = false" class="text-white/70 hover:text-white transition-colors">
+            <h2 class="text-2xl font-bold text-gray-800">Buy Electricity Tokens</h2>
+            <button @click="showBuyTokensModal = false" class="text-gray-500 hover:text-gray-800 transition-colors">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -521,27 +521,27 @@ onMounted(() => {
           <div class="space-y-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-white/80 mb-1">Amount (KSh)</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Amount (KSh)</label>
                 <input
                   v-model="buyAmount"
                   type="number"
                   placeholder="Enter amount"
-                  class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-white/50 text-white"
+                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400 text-gray-800"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-white/80 mb-1">M-Pesa Phone Number</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">M-Pesa Phone Number</label>
                 <input
                   v-model="mpesaPhone"
                   type="tel"
                   placeholder="07XXXXXXXX"
-                  class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-white/50 text-white"
+                  class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400 text-gray-800"
                 />
               </div>
-              <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-                <p class="text-sm text-white/80">Meter Number: {{ powerStore.meterNumber }}</p>
-                <p class="text-sm text-white/60 mt-1">Paybill: 888880</p>
-                <p class="text-sm text-green-400/80 mt-2">You will receive an M-PESA prompt to complete payment</p>
+              <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p class="text-sm text-gray-800">Meter Number: {{ powerStore.meterNumber }}</p>
+                <p class="text-sm text-gray-600 mt-1">Paybill: 888880</p>
+                <p class="text-sm text-green-600 mt-2">You will receive an M-PESA prompt to complete payment</p>
               </div>
             </div>
             

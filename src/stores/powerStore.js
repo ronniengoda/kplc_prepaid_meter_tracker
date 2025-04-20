@@ -44,11 +44,15 @@ export const usePowerStore = defineStore('power', () => {
     
     try {
       const data = await fetchPowerData(meterNumber.value);
-      powerData.value = data;
       
-      // Update cache
-      cachedData.value[meterNumber.value] = data;
-      localStorage.setItem('cachedPowerData', JSON.stringify(cachedData.value));
+      // Only update cache if we received valid data from the API
+      if (data) {
+        powerData.value = data;
+        
+        // Update cache only if we have valid data
+        cachedData.value[meterNumber.value] = data;
+        localStorage.setItem('cachedPowerData', JSON.stringify(cachedData.value));
+      }
     } catch (err) {
       error.value = err.message || 'Failed to fetch power data';
     } finally {
