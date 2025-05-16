@@ -535,8 +535,9 @@ const onUnmounted = () => {
               <FileText class="h-5 w-5 text-blue-600" />
             </div>
             <div>
+              <h1 class="text-sm font-medium text-gray-800">Manage Meters</h1>
               <h2 class="text-sm font-medium text-gray-800">{{ powerStore.getMeterLabel(powerStore.meterNumber) }}</h2>
-              <p class="text-xs text-gray-500">{{ powerStore.meterNumber }}</p>
+              <p class="text-xs text-gray-500">Meter No: {{ powerStore.meterNumber }}</p>
             </div>
           </div>
           <button @click="showMeterModal = true" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
@@ -577,20 +578,16 @@ const onUnmounted = () => {
           </div>
           
           <!-- Action Buttons -->
-          <div class="grid grid-cols-2 gap-4 mt-4">
-            <button @click="showBuyTokensModal = true" class="bg-white text-yellow-600 py-3 px-6 rounded-full font-medium flex items-center justify-center">
+          <div class="mt-4">
+            <button @click="showBuyTokensModal = true" class="w-full bg-white text-green-600 py-3 px-6 rounded-full font-medium flex items-center justify-center">
               <CreditCard class="h-5 w-5 mr-2" />
               Buy Tokens
-            </button>
-            <button @click="showMeterModal = true" class="bg-white/20 text-white py-3 px-6 rounded-full font-medium backdrop-blur-sm flex items-center justify-center">
-              <Settings class="h-5 w-5 mr-2" />
-              My Meters
             </button>
           </div>
         </section>
         
         <!-- Token Balance Card -->
-        <section class="bg-white border border-gray-200 p-5 rounded-xl shadow-sm">
+        <section class="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hidden">
           <!-- Token Balance Setup Prompt (shown when not set up) -->
           <div v-if="!powerStore.hasInitialBalance" class="flex flex-col space-y-3">
             <div class="flex items-center gap-4 mb-2">

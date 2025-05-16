@@ -37,7 +37,7 @@ export const calculateHourlyConsumption = (transactions) => {
 
 // Predict current token balance based on initial balance, purchases, and consumption rate
 export const predictCurrentBalance = (initialBalance, transactions, hourlyRate) => {
-  if (initialBalance === null || initialBalance === undefined) {
+  if (initialBalance == null) {
     return null; // Initial balance not set
   }
   
@@ -76,7 +76,7 @@ export const predictCurrentBalance = (initialBalance, transactions, hourlyRate) 
 
 // Format balance for display with appropriate precision
 export const formatBalance = (balance) => {
-  if (balance === null || balance === undefined) {
+  if (balance == null) {
     return '0';
   }
   

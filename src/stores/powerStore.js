@@ -155,7 +155,7 @@ export const usePowerStore = defineStore('power', () => {
       const data = await fetchPowerData(meterNumber.value);
       
       // Only update cache if we received valid data from the API
-      if (data) {
+      if (data.meterNumber) {
         powerData.value = data;
         
         // Update cache only if we have valid data
