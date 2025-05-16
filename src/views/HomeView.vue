@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { usePowerStore } from '../stores/powerStore';
 import { Line } from 'vue-chartjs';
 import { useToast } from "vue-toastification";
@@ -15,6 +15,7 @@ import {
   Filler
 } from 'chart.js';
 import InstallPrompt from '../components/InstallPrompt.vue';
+import PowerTracker from '../components/PowerTracker.vue';
 import {
   Zap,
   DollarSign,
@@ -31,15 +32,11 @@ import {
   Search,
   X,
   Plus,
-  List,
   FileText,
   Trash,
   ChevronLeft,
   ChevronRight,
-  Edit3,
-  Check
 } from 'lucide-vue-next';
-import { formatBalance } from '../utils/tokenBalancePredictor';
 
 ChartJS.register(
   CategoryScale,
@@ -65,11 +62,6 @@ const buyAmount = ref('');
 const mpesaPhone = ref('');
 const isProcessing = ref(false);
 const meterNumbers = ref(JSON.parse(localStorage.getItem('meterNumbers') || '[]'));
-const initialBalanceInput = ref('');
-const manualBalanceInput = ref('');
-const isEditingBalance = ref(false);
-const updateIntervalId = ref(null);
-
 const toast = useToast();
 
 const formatDate = (dateString) => {
@@ -150,7 +142,7 @@ const chartOptions = {
       padding: 10,
       displayColors: true,
       callbacks: {
-        label: function(context) {
+        label(context) {
           let label = context.dataset.label || '';
           if (label) {
             label += ': ';
@@ -335,99 +327,11 @@ const buyTokens = async () => {
   }
 };
 
-const submitInitialBalance = () => {
-  if (!initialBalanceInput.value) return;
-  
-  const balance = parseFloat(initialBalanceInput.value);
-  if (isNaN(balance) || balance < 0) {
-    toast.error("Please enter a valid balance amount");
-    return;
-  }
-  
-  if (typeof powerStore.setInitialTokenBalance !== 'function') {
-    console.error("setInitialTokenBalance is not available in the store!");
-    toast.error("An error occurred. Please refresh the page and try again.");
-    return;
-  }
-  
-  powerStore.setInitialTokenBalance(balance);
-  initialBalanceInput.value = '';
-  toast.success("Token balance tracking has been enabled");
-  
-  // Start hourly updates after setting initial balance
-  startHourlyUpdates();
-};
-
-const startHourlyUpdates = () => {
-  // Clear any existing intervals
-  if (updateIntervalId.value) {
-    clearInterval(updateIntervalId.value);
-  }
-  
-  // Update token balance immediately, with safety check
-  if (powerStore.updatePredictedBalance && typeof powerStore.updatePredictedBalance === 'function') {
-    powerStore.updatePredictedBalance();
-  } else {
-    console.error("updatePredictedBalance is not available in the store!");
-    toast.error("An error occurred with balance tracking. Please refresh the page.");
-    return;
-  }
-  
-  // Set up hourly updates
-  updateIntervalId.value = setInterval(() => {
-    powerStore.updatePredictedBalance();
-  }, 60 * 60 * 1000); // Update every hour
-};
-
-const adjustTokenBalance = () => {
-  if (!manualBalanceInput.value) {
-    isEditingBalance.value = false;
-    return;
-  }
-  
-  const balance = parseFloat(manualBalanceInput.value);
-  if (isNaN(balance) || balance < 0) {
-    toast.error("Please enter a valid balance amount");
-    return;
-  }
-  
-  powerStore.adjustTokenBalance(balance);
-  toast.success("Token balance has been updated");
-  manualBalanceInput.value = '';
-  isEditingBalance.value = false;
-};
-
-// Watch for changes in the meter number and reset the balance tracking
-watch(() => powerStore.meterNumber, () => {
-  initialBalanceInput.value = '';
-  manualBalanceInput.value = '';
-  
-  // Restart hourly updates if we have initial balance for the new meter
-  if (powerStore.hasInitialBalance) {
-    startHourlyUpdates();
-  } else if (updateIntervalId.value) {
-    clearInterval(updateIntervalId.value);
-    updateIntervalId.value = null;
-  }
-});
-
 onMounted(() => {
   if (powerStore.hasMeterNumber) {
     powerStore.fetchData();
-    
-    // Start hourly updates if we already have initial balance
-    if (powerStore.hasInitialBalance) {
-      startHourlyUpdates();
-    }
   }
 });
-
-// Clean up interval on component unmount
-const onUnmounted = () => {
-  if (updateIntervalId.value) {
-    clearInterval(updateIntervalId.value);
-  }
-};
 </script>
 
 <template>
@@ -587,128 +491,7 @@ const onUnmounted = () => {
         </section>
         
         <!-- Token Balance Card -->
-        <section class="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hidden">
-          <!-- Token Balance Setup Prompt (shown when not set up) -->
-          <div v-if="!powerStore.hasInitialBalance" class="flex flex-col space-y-3">
-            <div class="flex items-center gap-4 mb-2">
-              <div class="p-2 bg-amber-100 rounded-xl">
-                <Zap class="h-6 w-6 text-amber-600" />
-              </div>
-              <div>
-                <p class="font-medium text-gray-800">Setup Token Balance Tracking</p>
-                <p class="text-sm text-gray-600">Enable automatic balance predictions based on usage!</p>
-              </div>
-            </div>
-            
-            <div class="flex items-center gap-2">
-              <input 
-                v-model="initialBalanceInput"
-                type="number" 
-                placeholder="Enter initial token balance" 
-                class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button 
-                @click="submitInitialBalance"
-                class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
-              >
-                Save
-              </button>
-            </div>
-            <p class="text-xs text-amber-700">
-              We'll use this with your consumption history to predict your remaining token balance.
-            </p>
-          </div>
-          
-          <!-- Token Balance Prediction (shown when set up) -->
-          <div v-else class="flex flex-col space-y-4">
-            <div class="flex justify-between items-center">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-blue-100 rounded-xl">
-                  <Zap class="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p class="font-medium text-gray-800">Predicted Token Balance</p>
-                  <p class="text-xs text-gray-500">Based on your consumption pattern</p>
-                </div>
-              </div>
-              <button 
-                @click="powerStore.resetTokenBalance" 
-                class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                title="Reset balance tracking"
-              >
-                <Trash class="h-4 w-4" />
-              </button>
-            </div>
-            
-            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-              <div>
-                <span class="text-sm text-gray-500">Current balance:</span>
-              </div>
-              <div v-if="!isEditingBalance" class="text-right flex items-center gap-2">
-                <span 
-                  class="text-xl font-bold" 
-                  :class="powerStore.isTokenBalanceLow ? 'text-red-600' : 'text-green-600'"
-                >
-                  {{ formatBalance(powerStore.predictedBalance) }} kWh
-                </span>
-                <button 
-                  @click="isEditingBalance = true; manualBalanceInput = powerStore.predictedBalance.toString()" 
-                  class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                  title="Adjust balance"
-                >
-                  <Edit3 class="h-4 w-4" />
-                </button>
-              </div>
-              <div v-else class="text-right flex items-center gap-2">
-                <input 
-                  v-model="manualBalanceInput"
-                  type="number" 
-                  class="w-24 px-2 py-1 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-                />
-                <button 
-                  @click="adjustTokenBalance()" 
-                  class="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                  title="Save adjusted balance"
-                >
-                  <Check class="h-4 w-4" />
-                </button>
-                <button 
-                  @click="isEditingBalance = false; manualBalanceInput = ''" 
-                  class="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                  title="Cancel"
-                >
-                  <X class="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-gray-500 text-xs mb-1">Consumption rate:</div>
-                <div class="font-medium">{{ powerStore.hourlyConsumptionRate ? (powerStore.hourlyConsumptionRate).toFixed(2) : '0' }} kWh/hour</div>
-              </div>
-              
-              <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-gray-500 text-xs mb-1">Estimated days left:</div>
-                <div class="font-medium">{{ powerStore.daysRemaining !== null ? powerStore.daysRemaining : 'N/A' }} days</div>
-              </div>
-            </div>
-            
-            <div v-if="powerStore.isTokenBalanceLow" class="mt-1 bg-red-50 p-3 rounded-lg border border-red-100">
-              <p class="text-xs text-red-600 font-medium flex items-center">
-                <Info class="h-3.5 w-3.5 mr-1" />
-                Your balance is running low! Consider purchasing more tokens.
-              </p>
-            </div>
-            
-            <div class="mt-1 bg-blue-50 p-3 rounded-lg border border-blue-100">
-              <p class="text-xs text-blue-600 font-medium flex items-center">
-                <Info class="h-3.5 w-3.5 mr-1" />
-                Balance is automatically updated hourly based on your usage patterns.
-              </p>
-            </div>
-          </div>
-        </section>
+        <PowerTracker />
         
         <!-- Investment Performance (Power Usage Graph) -->
         <section>
