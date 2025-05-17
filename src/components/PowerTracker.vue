@@ -130,10 +130,7 @@
         <label for="notificationsToggle" class="text-sm text-gray-600">Enable low balance notifications</label>
       </div>
 
-      <div class="mt-2 text-xs text-gray-500 flex items-start">
-        <AlertCircle class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" />
-        <p>Your balance is automatically updated every 30 seconds, even when the app is in the background.</p>
-      </div>
+              <div class="mt-2 text-xs text-gray-500 flex items-start">          <AlertCircle class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" />          <p>Your balance is automatically updated every 30 seconds, even when the app is in the background.</p>        </div>
     </div>
 
     <!-- Info Modal -->
@@ -371,6 +368,9 @@ onMounted(async () => {
     await checkNotificationPermission();
     registerBackgroundTask();
   }
+  
+  // Listen for background updates
+  window.addEventListener('power-balance-updated', handleBackgroundUpdate);
 });
 
 // Clean up the timer when the component is unmounted
@@ -378,7 +378,33 @@ onUnmounted(() => {
   if (updateTimer) {
     clearInterval(updateTimer);
   }
+  
+  // Remove event listener
+  window.removeEventListener('power-balance-updated', handleBackgroundUpdate);
 });
+
+// Handle background updates from service worker
+const handleBackgroundUpdate = (event) => {
+  if (event.detail) {
+    // Update the stored values based on the service worker calculation
+    const { balance, timestamp } = event.detail;
+    manualBalance.value = balance;
+    lastUpdated.value = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // Update the UI immediately
+    currentTime.value = new Date(timestamp);
+  }
+};
+
+// Add a method to update token purchases
+const addTokenUnits = (units) => {
+  const currentTokens = parseFloat(localStorage.getItem("tokensAdded") || "0");
+  const newTotal = currentTokens + units;
+  localStorage.setItem("tokensAdded", newTotal.toString());
+  
+  // Trigger a background update to recalculate everything
+  triggerBackgroundUpdate();
+};
 
 watch(initialReading, (newVal) => {
   localStorage.setItem("initialReading", newVal);

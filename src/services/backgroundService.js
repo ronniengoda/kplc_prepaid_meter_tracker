@@ -40,7 +40,7 @@ export const registerBackgroundTask = async () => {
           
           if (status.state === "granted") {
             await registration.periodicSync.register("power-update", {
-              minInterval: 30 * 60 * 1000, // 30 minutes minimum
+              minInterval: 30 * 1000, // 30 seconds minimum
             });
             console.log("Periodic background sync registered");
           }
@@ -48,6 +48,12 @@ export const registerBackgroundTask = async () => {
           console.log("Periodic background sync not available", err);
         }
       }
+
+      // Set up message handler for communicating with service worker
+      setupServiceWorkerCommunication();
+      
+      // Trigger an initial background update
+      triggerBackgroundUpdate();
       
       return registration;
     } else {
@@ -60,15 +66,81 @@ export const registerBackgroundTask = async () => {
   }
 };
 
+// Set up message handling for service worker communication
+const setupServiceWorkerCommunication = () => {
+  if (!("serviceWorker" in navigator)) return;
+
+  // Listen for messages from the service worker
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (!event.data) return;
+
+    // Handle request for localStorage data
+    if (event.data.type === 'GET_STORAGE_DATA') {
+      const storageData = {
+        initialReading: localStorage.getItem("initialReading"),
+        readingStartTime: localStorage.getItem("readingStartTime"),
+        manualBalance: localStorage.getItem("manualBalance"),
+        avgRatePerMinute: getAverageRatePerMinute(),
+        tokensAdded: localStorage.getItem("tokensAdded") || "0",
+        learningFactor: localStorage.getItem("learningFactor") || "0",
+        notificationsEnabled: localStorage.getItem("notificationsEnabled") === "true",
+        lastNotifiedLevel: localStorage.getItem("lastNotifiedLevel")
+      };
+
+      // Send the data back through the provided port
+      event.ports[0].postMessage({ storageData });
+    }
+    
+    // Handle updated balance from service worker
+    if (event.data.type === 'UPDATED_POWER_BALANCE') {
+      // Store the balance locally
+      localStorage.setItem("currentBalance", event.data.balance);
+      localStorage.setItem("lastBackgroundUpdate", event.data.timestamp);
+      
+      // Dispatch an event that components can listen for
+      const updateEvent = new CustomEvent('power-balance-updated', { 
+        detail: { 
+          balance: parseFloat(event.data.balance),
+          timestamp: event.data.timestamp
+        } 
+      });
+      window.dispatchEvent(updateEvent);
+    }
+    
+    // Handle notification level updates from service worker
+    if (event.data.type === 'UPDATE_NOTIFICATION_LEVEL') {
+      if (event.data.level === null) {
+        localStorage.removeItem("lastNotifiedLevel");
+      } else {
+        localStorage.setItem("lastNotifiedLevel", event.data.level);
+      }
+    }
+  });
+};
+
 // Function to manually trigger a balance update from the service worker
 export const triggerBackgroundUpdate = async () => {
   if (!("serviceWorker" in navigator)) return;
   
   try {
     const registration = await navigator.serviceWorker.ready;
+    
+    // Gather current data from localStorage to send to service worker
+    const storageData = {
+      initialReading: localStorage.getItem("initialReading"),
+      readingStartTime: localStorage.getItem("readingStartTime"),
+      manualBalance: localStorage.getItem("manualBalance"),
+      avgRatePerMinute: getAverageRatePerMinute(),
+      tokensAdded: localStorage.getItem("tokensAdded") || "0",
+      learningFactor: localStorage.getItem("learningFactor") || "0",
+      notificationsEnabled: localStorage.getItem("notificationsEnabled") === "true",
+      lastNotifiedLevel: localStorage.getItem("lastNotifiedLevel")
+    };
+    
     // Post a message to the service worker to update the balance
     registration.active.postMessage({
-      type: "UPDATE_POWER_BALANCE"
+      type: "UPDATE_POWER_BALANCE",
+      storageData
     });
   } catch (error) {
     console.error("Error triggering background update:", error);

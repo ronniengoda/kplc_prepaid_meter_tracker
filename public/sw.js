@@ -103,7 +103,7 @@ self.addEventListener('periodicsync', event => {
 // Handle messages from the client
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'UPDATE_POWER_BALANCE') {
-    event.waitUntil(updatePowerBalance());
+    event.waitUntil(updatePowerBalance(event.data.storageData));
   }
 });
 
@@ -148,31 +148,106 @@ self.addEventListener('notificationclick', event => {
   }
 });
 
+// Get data from client
+async function getStorageDataFromClient() {
+  const clients = await self.clients.matchAll();
+  if (clients && clients.length > 0) {
+    // Create a promise that will resolve with the client's response
+    return new Promise((resolve, reject) => {
+      // Create a message channel to receive the response
+      const messageChannel = new MessageChannel();
+      
+      // Set up the message handler to receive the response
+      messageChannel.port1.onmessage = (event) => {
+        if (event.data && event.data.storageData) {
+          resolve(event.data.storageData);
+        } else {
+          reject(new Error('No storage data received'));
+        }
+      };
+      
+      // Send message to client to request storage data
+      clients[0].postMessage(
+        { type: 'GET_STORAGE_DATA' },
+        [messageChannel.port2]
+      );
+      
+      // Set a timeout in case the client doesn't respond
+      setTimeout(() => reject(new Error('Client response timeout')), 3000);
+    });
+  }
+  return null;
+}
+
 // Update power balance in the background
-async function updatePowerBalance() {
+async function updatePowerBalance(storageData) {
   try {
-    // Get stored values
-    const initialReading = parseFloat(localStorage.getItem("initialReading") || "0");
-    if (!initialReading || initialReading === 0) return;
+    // If no storage data was passed in, try to get it from a client
+    if (!storageData) {
+      try {
+        storageData = await getStorageDataFromClient();
+      } catch (err) {
+        console.error("Could not get storage data from client:", err);
+        return false;
+      }
+    }
     
-    const readingStartTime = localStorage.getItem("readingStartTime");
-    if (!readingStartTime) return;
+    if (!storageData) {
+      console.error("No storage data available");
+      return false;
+    }
     
-    const notificationsEnabled = localStorage.getItem("notificationsEnabled") === "true";
+    // Extract values from passed storage data
+    const initialReading = parseFloat(storageData.initialReading || "0");
+    if (!initialReading || initialReading === 0) return false;
+    
+    const readingStartTime = storageData.readingStartTime;
+    if (!readingStartTime) return false;
+    
+    const notificationsEnabled = storageData.notificationsEnabled === true;
+    const avgRatePerMinute = parseFloat(storageData.avgRatePerMinute || "0.008333");
+    const manualBalance = parseFloat(storageData.manualBalance || "0");
+    const hasManualBalance = !isNaN(manualBalance) && storageData.manualBalance !== null;
+    const tokensAdded = parseFloat(storageData.tokensAdded || "0");
+    const learningFactor = parseFloat(storageData.learningFactor || "0");
+    const lastNotifiedLevel = storageData.lastNotifiedLevel ? 
+      parseInt(storageData.lastNotifiedLevel) : null;
     
     // Calculate the current balance
-    const balance = calculatePowerBalance();
+    let balance;
     
-    // Store the current balance
-    localStorage.setItem("currentBalance", balance.toFixed(2));
+    // If manual balance is set, use that
+    if (hasManualBalance) {
+      balance = manualBalance;
+    } else {
+      // Calculate elapsed minutes
+      const start = new Date(readingStartTime);
+      const now = new Date();
+      const minutesElapsed = (now - start) / 60000;
+      
+      // Calculate consumption
+      const consumed = avgRatePerMinute * minutesElapsed;
+      
+      // Calculate balance
+      balance = initialReading + tokensAdded - consumed + learningFactor;
+    }
+    
+    // Update the client with the new balance
+    const clients = await self.clients.matchAll();
+    if (clients && clients.length > 0) {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'UPDATED_POWER_BALANCE',
+          balance: balance.toFixed(2),
+          timestamp: new Date().toISOString()
+        });
+      });
+    }
     
     // Check and send notifications if needed
     if (notificationsEnabled) {
-      await checkBalanceAndNotify(balance);
+      await checkBalanceAndNotify(balance, lastNotifiedLevel);
     }
-    
-    // Log the update timestamp
-    localStorage.setItem("lastBackgroundUpdate", new Date().toISOString());
     
     return true;
   } catch (error) {
@@ -181,43 +256,8 @@ async function updatePowerBalance() {
   }
 }
 
-// Calculate the current power balance
-function calculatePowerBalance() {
-  // Simplified calculation to work within the service worker
-  const initialReading = parseFloat(localStorage.getItem("initialReading") || "0");
-  const readingStartTime = localStorage.getItem("readingStartTime");
-  const manualBalance = parseFloat(localStorage.getItem("manualBalance") || "0");
-  const hasManualBalance = !isNaN(manualBalance);
-  
-  // If manual balance is set, use that
-  if (hasManualBalance) {
-    return manualBalance;
-  }
-  
-  // Get rate from storage (previously calculated and stored)
-  const avgRatePerMinute = parseFloat(localStorage.getItem("avgRatePerMinute") || "0.008333"); // Default ~0.5 units per hour
-  
-  // Calculate elapsed minutes
-  const start = new Date(readingStartTime);
-  const now = new Date();
-  const minutesElapsed = (now - start) / 60000;
-  
-  // Calculate consumption
-  const consumed = avgRatePerMinute * minutesElapsed;
-  
-  // Get other factors (simplified for service worker)
-  const latestTokens = parseFloat(localStorage.getItem("tokensAdded") || "0");
-  const learnedAdjustment = parseFloat(localStorage.getItem("learningFactor") || "0");
-  
-  // Calculate balance
-  return initialReading + latestTokens - consumed + learnedAdjustment;
-}
-
 // Check balance threshold and show notification if needed
-async function checkBalanceAndNotify(balance) {
-  const lastNotifiedLevel = localStorage.getItem("lastNotifiedLevel") ? 
-    parseInt(localStorage.getItem("lastNotifiedLevel")) : null;
-    
+async function checkBalanceAndNotify(balance, lastNotifiedLevel) {
   // Check thresholds and notify if needed
   if (balance <= 1 && lastNotifiedLevel !== 1) {
     await showNotification(
@@ -225,16 +265,45 @@ async function checkBalanceAndNotify(balance) {
       `Your power balance is ${balance.toFixed(2)} kWh. Purchase more units immediately!`,
       1
     );
-    localStorage.setItem("lastNotifiedLevel", "1");
+    
+    // Update the clients with the new notification level
+    const clients = await self.clients.matchAll();
+    if (clients && clients.length > 0) {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'UPDATE_NOTIFICATION_LEVEL',
+          level: 1
+        });
+      });
+    }
   } else if (balance <= 2 && balance > 1 && lastNotifiedLevel !== 2) {
     await showNotification(
       "Low Power Balance", 
       `Your power balance is ${balance.toFixed(2)} kWh. Consider purchasing more units soon.`,
       2
     );
-    localStorage.setItem("lastNotifiedLevel", "2");
-  } else if (balance > 2) {
-    localStorage.removeItem("lastNotifiedLevel");
+    
+    // Update the clients with the new notification level
+    const clients = await self.clients.matchAll();
+    if (clients && clients.length > 0) {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'UPDATE_NOTIFICATION_LEVEL',
+          level: 2
+        });
+      });
+    }
+  } else if (balance > 2 && lastNotifiedLevel !== null) {
+    // Update the clients to clear notification level
+    const clients = await self.clients.matchAll();
+    if (clients && clients.length > 0) {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'UPDATE_NOTIFICATION_LEVEL',
+          level: null
+        });
+      });
+    }
   }
 }
 
@@ -257,7 +326,7 @@ async function showNotification(title, message, urgency) {
       }
     ],
     data: {
-      balance: parseFloat(localStorage.getItem("currentBalance") || "0"),
+      balance: balance,
       urgency: urgency
     }
   });
