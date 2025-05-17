@@ -1,23 +1,66 @@
 {
-  "name": "Power Consumption Tracker",
-  "short_name": "PowerTracker",
-  "description": "Track and visualize your electricity consumption",
+  "name": "Power Balance Tracker",
+  "short_name": "Power Track",
+  "description": "Track your electricity meter balance and get notifications when it's low",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "View Balance",
+      "url": "/"
+    },
+    {
+      "name": "Buy Tokens",
+      "url": "/buy-tokens"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/screenshots/balance.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["utilities"],
+  "dir": "ltr",
+  "lang": "en-US",
+  "orientation": "portrait",
+  "iarc_rating_id": "",
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "serviceworker": {
+    "src": "/sw.js",
+    "scope": "/"
+  },
+  "permissions": [
+    "notifications",
+    "background",
+    "background-sync"
   ]
 } 

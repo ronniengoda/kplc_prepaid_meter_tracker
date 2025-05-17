@@ -64,6 +64,24 @@ const isProcessing = ref(false);
 const meterNumbers = ref(JSON.parse(localStorage.getItem('meterNumbers') || '[]'));
 const toast = useToast();
 
+// Function to handle closing the application
+const handleClose = () => {
+  try {
+    if (window) {
+      window.close();
+    }
+  } catch (error) {
+    console.log('Unable to close window, trying alternative method');
+    try {
+      if (history) {
+        history.back();
+      }
+    } catch (innerError) {
+      console.log('All close methods failed');
+    }
+  }
+};
+
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   const day = date.getDate();
@@ -422,10 +440,10 @@ onMounted(() => {
       <header class="sticky top-0 z-40 bg-white text-gray-800 p-4 sm:p-6 border-b border-gray-200">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
           <div>
-            <h1 class="text-xl sm:text-2xl font-bold">POWER TRACKER</h1>
+            <h1 class="text-xl sm:text-2xl font-bold">MY POWER TRACKER</h1>
           </div>
           <div class="flex">
-            <button @click="showMeterModal = false" class="text-gray-800">
+            <button @click="handleClose" class="text-gray-800">
               <X class="h-6 w-6" />
             </button>
           </div>
@@ -473,9 +491,9 @@ onMounted(() => {
           
           <!-- Date Range Selector -->
           <div class="mt-4 bg-white/10 p-2 rounded-lg backdrop-blur-sm flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="text-xs text-white/90">Date Range:</div>
-              <button class="px-3 py-1 bg-white/20 rounded-md text-xs hover:bg-white/30 transition-colors">
+            <div class="flex items-center justify-between w-full">
+              <div class="text-sm font-medium text-white/90">Date Range</div>
+              <button class="flex-1 ml-4 px-4 py-2 bg-white/20 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors">
                 {{ powerStore.powerData?.dateRange||'Last 7 days' }}
               </button>
             </div>

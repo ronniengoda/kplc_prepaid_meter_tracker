@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Power Tracker - Offline</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #f9fafb;
+      color: #1f2937;
+    }
+    
+    .container {
+      max-width: 28rem;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    
+    .offline-icon {
+      width: 96px;
+      height: 96px;
+      margin-bottom: 1.5rem;
+      color: #4b5563;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      margin-bottom: 1.5rem;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+    
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #3b82f6;
+      color: white;
+      font-weight: 500;
+      padding: 0.625rem 1.25rem;
+      border-radius: 0.5rem;
+      text-decoration: none;
+      transition: background-color 150ms;
+    }
+    
+    .button:hover {
+      background-color: #2563eb;
+    }
+    
+    .offline-info {
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: #eff6ff;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: #1e40af;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <svg class="offline-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+    
+    <h1>You're currently offline</h1>
+    <p>Your power balance continues to be tracked even while you're offline. Reconnect to the internet to access all features.</p>
+    
+    <a href="/" class="button">Try Again</a>
+    
+    <div class="offline-info">
+      <strong>Good news!</strong> Power balance calculations still work offline and will automatically sync when you're back online.
+    </div>
+  </div>
+
+  <script>
+    // When the user comes back online, refresh the page
+    window.addEventListener('online', () => {
+      window.location.reload();
+    });
+    
+    // Check if cached balance is available
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentBalance = localStorage.getItem('currentBalance');
+      const lastUpdated = localStorage.getItem('lastBackgroundUpdate');
+      
+      if (currentBalance) {
+        const infoDiv = document.querySelector('.offline-info');
+        const date = lastUpdated ? new Date(lastUpdated).toLocaleString() : 'unknown time';
+        
+        infoDiv.innerHTML = `
+          <strong>Current Power Balance:</strong> ${currentBalance} kWh<br>
+          <small>Last updated: ${date}</small>
+        `;
+      }
+    });
+  </script>
+</body>
+</html> 
